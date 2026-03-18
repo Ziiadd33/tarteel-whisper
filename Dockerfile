@@ -3,7 +3,8 @@ FROM pytorch/pytorch:2.4.1-cuda12.4-cudnn9-devel
 WORKDIR /app
 
 # Upgrade torch to >= 2.6 FIRST (transformers 5.x requires it)
-RUN pip install --no-cache-dir --upgrade torch
+# Also upgrade torchvision to match (old version conflicts with new torch)
+RUN pip install --no-cache-dir --upgrade torch torchvision
 
 # Then install the rest
 RUN pip install --no-cache-dir \
