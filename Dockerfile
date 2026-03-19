@@ -18,10 +18,8 @@ RUN pip install --no-cache-dir \
 
 COPY handler.py .
 
-# Pre-download models during build (faster cold starts)
-RUN python -c "from transformers import WhisperProcessor, WhisperForConditionalGeneration, GenerationConfig; \
-    WhisperProcessor.from_pretrained('tarteel-ai/whisper-base-ar-quran'); \
-    WhisperForConditionalGeneration.from_pretrained('tarteel-ai/whisper-base-ar-quran'); \
-    GenerationConfig.from_pretrained('openai/whisper-base')"
+# Pre-download whisper-large-v3 during build (~3GB, slower build but faster cold starts)
+RUN python -c "from transformers import pipeline; \
+    pipeline('automatic-speech-recognition', model='openai/whisper-large-v3', device='cpu')"
 
 CMD ["python", "-u", "handler.py"]

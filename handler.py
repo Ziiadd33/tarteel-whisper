@@ -2,27 +2,16 @@ import runpod
 import torch
 import io
 import base64
-from transformers import (
-    pipeline,
-    GenerationConfig,
-    WhisperForConditionalGeneration,
-    WhisperProcessor,
-)
+from transformers import pipeline
 import librosa
 
-# Load model and processor separately so we can patch generation_config BEFORE pipeline wraps it
-MODEL_ID = "tarteel-ai/whisper-base-ar-quran"
+# Load whisper-large-v3 — best quality, native timestamp support
+MODEL_ID = "openai/whisper-large-v3"
 device = "cuda" if torch.cuda.is_available() else "cpu"
-
-model = WhisperForConditionalGeneration.from_pretrained(MODEL_ID)
-model.generation_config = GenerationConfig.from_pretrained("openai/whisper-base")
-processor = WhisperProcessor.from_pretrained(MODEL_ID)
 
 pipe = pipeline(
     "automatic-speech-recognition",
-    model=model,
-    tokenizer=processor.tokenizer,
-    feature_extractor=processor.feature_extractor,
+    model=MODEL_ID,
     device=device,
     chunk_length_s=30,
     stride_length_s=5,
