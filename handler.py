@@ -2,7 +2,7 @@ import runpod
 import torch
 import io
 import base64
-from transformers import WhisperProcessor, WhisperForConditionalGeneration
+from transformers import WhisperProcessor, WhisperForConditionalGeneration, GenerationConfig
 import librosa
 
 # Load model once at cold start (cached across warm invocations)
@@ -10,6 +10,11 @@ MODEL_ID = "tarteel-ai/whisper-base-ar-quran"
 processor = WhisperProcessor.from_pretrained(MODEL_ID)
 model = WhisperForConditionalGeneration.from_pretrained(MODEL_ID)
 model.to("cuda" if torch.cuda.is_available() else "cpu")
+
+# Fix: Tarteel model lacks generation_config with timestamp tokens.
+# Copy from openai/whisper-base and set the required token IDs.
+model.generation_config = GenerationConfig.from_pretrained("openai/whisper-base")
+model.generation_config.no_timestamps_token_id = processor.tokenizer.convert_tokens_to_ids("<|notimestamps|>")
 
 
 def handler(event):
