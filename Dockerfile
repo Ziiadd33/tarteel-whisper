@@ -1,15 +1,18 @@
-FROM pytorch/pytorch:2.4.1-cuda12.4-cudnn9-devel
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Upgrade torch to >= 2.6 FIRST (transformers 5.x requires it)
-# Also upgrade torchvision to match (old version conflicts with new torch)
-RUN pip install --no-cache-dir --upgrade torch torchvision
+# Install torch CPU-first (lighter), then upgrade to CUDA version
+RUN pip install --no-cache-dir \
+    torch --index-url https://download.pytorch.org/whl/cu121
 
-# Then install the rest
+# Remove torchvision/torchaudio if present (not needed, causes conflicts)
+RUN pip uninstall -y torchvision torchaudio 2>/dev/null; true
+
+# Install dependencies
 RUN pip install --no-cache-dir \
     runpod \
-    transformers \
+    "transformers>=4.40,<5" \
     librosa \
     soundfile
 
