@@ -2,11 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install torch CPU-first (lighter), then upgrade to CUDA version
+# Install torch >= 2.6 with CUDA 12.4 (required by transformers for CVE-2025-32434)
 RUN pip install --no-cache-dir \
-    torch --index-url https://download.pytorch.org/whl/cu121
+    torch --index-url https://download.pytorch.org/whl/cu124
 
-# Remove torchvision/torchaudio if present (not needed, causes conflicts)
+# Remove torchvision/torchaudio if present (not needed)
 RUN pip uninstall -y torchvision torchaudio 2>/dev/null; true
 
 # Install dependencies
