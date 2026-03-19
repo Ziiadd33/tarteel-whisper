@@ -2,19 +2,20 @@ import runpod
 import torch
 import io
 import base64
-from transformers import WhisperProcessor, WhisperForConditionalGeneration, GenerationConfig
+from transformers import pipeline
 import librosa
 
-# Load model once at cold start (cached across warm invocations)
+# Load model once at cold start using pipeline (handles long audio automatically)
 MODEL_ID = "tarteel-ai/whisper-base-ar-quran"
-processor = WhisperProcessor.from_pretrained(MODEL_ID)
-model = WhisperForConditionalGeneration.from_pretrained(MODEL_ID)
-model.to("cuda" if torch.cuda.is_available() else "cpu")
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Fix: Tarteel model lacks generation_config with timestamp tokens.
-# Copy from openai/whisper-base and set the required token IDs.
-model.generation_config = GenerationConfig.from_pretrained("openai/whisper-base")
-model.generation_config.no_timestamps_token_id = processor.tokenizer.convert_tokens_to_ids("<|notimestamps|>")
+pipe = pipeline(
+    "automatic-speech-recognition",
+    model=MODEL_ID,
+    device=device,
+    chunk_length_s=30,
+    stride_length_s=5,
+)
 
 
 def handler(event):
@@ -25,36 +26,27 @@ def handler(event):
     # Decode audio to numpy array at 16kHz (Whisper's expected sample rate)
     audio_array, sr = librosa.load(io.BytesIO(audio_bytes), sr=16000)
 
-    # Process with Whisper
-    input_features = processor(
-        audio_array, sampling_rate=16000, return_tensors="pt"
-    ).input_features.to(model.device)
-
-    # Generate with timestamps
-    predicted_ids = model.generate(
-        input_features,
+    # Transcribe with timestamps — pipeline handles chunking automatically
+    result = pipe(
+        {"raw": audio_array, "sampling_rate": 16000},
         return_timestamps=True,
-        language="ar",
-        task="transcribe",
-    )
-
-    result = processor.batch_decode(
-        predicted_ids, skip_special_tokens=True, output_offsets=True
+        generate_kwargs={"language": "ar", "task": "transcribe"},
     )
 
     # Extract segments with timestamps
     segments = []
-    if result and len(result) > 0:
-        for chunk in result[0].get("offsets", []):
+    if result and "chunks" in result:
+        for chunk in result["chunks"]:
+            ts = chunk.get("timestamp", (0, 0))
             segments.append({
-                "start": chunk["timestamp"][0],
-                "end": chunk["timestamp"][1],
+                "start": ts[0] if ts[0] is not None else 0,
+                "end": ts[1] if ts[1] is not None else 0,
                 "text": chunk["text"],
             })
 
-    # Fallback: if no offsets, return full text as single segment
+    # Fallback: if no chunks, return full text as single segment
     if not segments and result:
-        text = result[0] if isinstance(result[0], str) else result[0].get("text", "")
+        text = result.get("text", "")
         if text:
             duration = len(audio_array) / 16000
             segments.append({"start": 0.0, "end": duration, "text": text})
