@@ -17,10 +17,8 @@ pipe = pipeline(
     stride_length_s=5,
 )
 
-# Tarteel model lacks timestamp token config — copy from openai/whisper-base
-base_gen_config = GenerationConfig.from_pretrained("openai/whisper-base")
-pipe.model.generation_config.no_timestamps_token_id = base_gen_config.no_timestamps_token_id
-pipe.model.generation_config.begin_timestamps = base_gen_config.begin_timestamps
+# Tarteel model lacks timestamp config — replace with complete config from base model
+pipe.model.generation_config = GenerationConfig.from_pretrained("openai/whisper-base")
 
 
 def handler(event):
