@@ -18,9 +18,10 @@ RUN pip install --no-cache-dir \
 
 COPY handler.py .
 
-# Pre-download model during build (faster cold starts)
-RUN python -c "from transformers import WhisperProcessor, WhisperForConditionalGeneration; \
+# Pre-download models during build (faster cold starts)
+RUN python -c "from transformers import WhisperProcessor, WhisperForConditionalGeneration, GenerationConfig; \
     WhisperProcessor.from_pretrained('tarteel-ai/whisper-base-ar-quran'); \
-    WhisperForConditionalGeneration.from_pretrained('tarteel-ai/whisper-base-ar-quran')"
+    WhisperForConditionalGeneration.from_pretrained('tarteel-ai/whisper-base-ar-quran'); \
+    GenerationConfig.from_pretrained('openai/whisper-base')"
 
 CMD ["python", "-u", "handler.py"]

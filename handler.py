@@ -2,7 +2,7 @@ import runpod
 import torch
 import io
 import base64
-from transformers import pipeline
+from transformers import pipeline, GenerationConfig
 import librosa
 
 # Load model once at cold start using pipeline (handles long audio automatically)
@@ -16,6 +16,11 @@ pipe = pipeline(
     chunk_length_s=30,
     stride_length_s=5,
 )
+
+# Tarteel model lacks timestamp token config — copy from openai/whisper-base
+base_gen_config = GenerationConfig.from_pretrained("openai/whisper-base")
+pipe.model.generation_config.no_timestamps_token_id = base_gen_config.no_timestamps_token_id
+pipe.model.generation_config.begin_timestamps = base_gen_config.begin_timestamps
 
 
 def handler(event):
