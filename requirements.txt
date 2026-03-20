@@ -1,5 +1,0 @@
-runpod
-transformers
-torch
-librosa
-soundfile

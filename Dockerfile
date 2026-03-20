@@ -1,25 +1,25 @@
-FROM python:3.11-slim
+FROM pytorch/pytorch:2.4.1-cuda12.4-cudnn9-devel
 
 WORKDIR /app
 
-# Install torch >= 2.6 with CUDA 12.4 (required by transformers for CVE-2025-32434)
-RUN pip install --no-cache-dir \
-    torch --index-url https://download.pytorch.org/whl/cu124
+# Upgrade torch to >= 2.6 (required by transformers >= 5.x for CVE-2025-32434)
+RUN pip install --no-cache-dir --upgrade torch
 
-# Remove torchvision/torchaudio if present (not needed)
-RUN pip uninstall -y torchvision torchaudio 2>/dev/null; true
-
-# Install dependencies
 RUN pip install --no-cache-dir \
     runpod \
-    "transformers>=4.40,<5" \
+    transformers \
     librosa \
-    soundfile
+    soundfile \
+    whisperx
 
 COPY handler.py .
 
-# Pre-download whisper-large-v3 during build (~3GB, slower build but faster cold starts)
-RUN python -c "from transformers import pipeline; \
-    pipeline('automatic-speech-recognition', model='openai/whisper-large-v3', device='cpu')"
+# Pre-download Whisper model during build (faster cold starts)
+RUN python -c "from transformers import WhisperProcessor, WhisperForConditionalGeneration; \
+    WhisperProcessor.from_pretrained('tarteel-ai/whisper-base-ar-quran'); \
+    WhisperForConditionalGeneration.from_pretrained('tarteel-ai/whisper-base-ar-quran')"
+
+# Pre-download wav2vec2 Arabic alignment model during build
+RUN python -c "import whisperx; whisperx.load_align_model(language_code='ar', device='cpu')"
 
 CMD ["python", "-u", "handler.py"]
