@@ -2,8 +2,8 @@ FROM pytorch/pytorch:2.4.1-cuda12.4-cudnn9-devel
 
 WORKDIR /app
 
-# Upgrade torch to >= 2.6 (required by transformers >= 5.x for CVE-2025-32434)
-RUN pip install --no-cache-dir --upgrade torch
+# Upgrade torch + torchvision together (must be compatible versions)
+RUN pip install --no-cache-dir --upgrade torch torchvision torchaudio
 
 RUN pip install --no-cache-dir \
     runpod \
