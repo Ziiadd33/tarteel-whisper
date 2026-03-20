@@ -2,23 +2,25 @@ FROM pytorch/pytorch:2.4.1-cuda12.4-cudnn9-devel
 
 WORKDIR /app
 
-# Install whisperx and other deps first (whisperx pulls its own torch/torchvision)
+# 1. Upgrade torch stack to >= 2.6 from PyTorch's CUDA 12.4 index
+#    (versions are paired correctly in this index)
+RUN pip install --no-cache-dir \
+    torch torchvision torchaudio \
+    --index-url https://download.pytorch.org/whl/cu124
+
+# 2. Install whisperx WITHOUT deps so it can't break our torch versions
+RUN pip install --no-cache-dir --no-deps whisperx
+
+# 3. Install whisperx's actual dependencies (minus torch/torchvision/torchaudio)
+#    and our other deps
 RUN pip install --no-cache-dir \
     runpod \
     transformers \
     librosa \
     soundfile \
-    whisperx
-
-# Force-reinstall compatible torch stack AFTER whisperx
-# whisperx installs torchvision 0.25.0 which needs torch==2.10.0,
-# but the CUDA base image only supports certain torch+CUDA combos.
-# Pin to torch 2.4.x that matches the base image's CUDA 12.4.
-RUN pip install --no-cache-dir --force-reinstall \
-    torch==2.4.1+cu124 \
-    torchvision==0.19.1+cu124 \
-    torchaudio==2.4.1+cu124 \
-    --index-url https://download.pytorch.org/whl/cu124
+    faster-whisper \
+    pyannote.audio \
+    nltk
 
 COPY handler.py .
 
