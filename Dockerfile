@@ -2,25 +2,18 @@ FROM pytorch/pytorch:2.4.1-cuda12.4-cudnn9-devel
 
 WORKDIR /app
 
-# 1. Upgrade torch stack to >= 2.6 from PyTorch's CUDA 12.4 index
-#    (versions are paired correctly in this index)
-RUN pip install --no-cache-dir \
-    torch torchvision torchaudio \
-    --index-url https://download.pytorch.org/whl/cu124
+# Remove pre-installed torch 2.4.1 (too old for transformers >= 5.x CVE fix)
+# so pip can resolve all versions together from scratch
+RUN pip uninstall -y torch torchvision torchaudio
 
-# 2. Install whisperx WITHOUT deps so it can't break our torch versions
-RUN pip install --no-cache-dir --no-deps whisperx
-
-# 3. Install whisperx's actual dependencies (minus torch/torchvision/torchaudio)
-#    and our other deps
+# Install ALL dependencies in one pip command for proper version resolution.
+# Modern PyPI torch (>= 2.6) includes CUDA support natively.
 RUN pip install --no-cache-dir \
     runpod \
     transformers \
     librosa \
     soundfile \
-    faster-whisper \
-    pyannote.audio \
-    nltk
+    whisperx
 
 COPY handler.py .
 
